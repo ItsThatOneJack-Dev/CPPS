@@ -1,3 +1,0 @@
-C:/Users/Jack/CLionProjects/FirstCPlusPlusProject/cmake-build-debug/CMakeFiles/FirstCPlusPlusProject.dir
-C:/Users/Jack/CLionProjects/FirstCPlusPlusProject/cmake-build-debug/CMakeFiles/edit_cache.dir
-C:/Users/Jack/CLionProjects/FirstCPlusPlusProject/cmake-build-debug/CMakeFiles/rebuild_cache.dir
