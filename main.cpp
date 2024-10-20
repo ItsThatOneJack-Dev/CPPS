@@ -1,15 +1,17 @@
-#include <iostream>
 #include <chrono>
-#include <thread>
-#include <filesystem>
-#include "modulesource.cpp"
-#include "which.cpp"
-#include "processinterface.hpp"
-#include <vector>
-#include <string>
-#include <sstream>
 #include <csignal>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <thread>
+#include <vector>
+#include <ranges>
 
+#include "modulesource.cpp"
+#include "processinterface.hpp"
+#include "timeutils.cpp"
+#include "which.cpp"
 
 std::string PromptLine1 = "C++S " + std::filesystem::current_path().string();
 std::string PromptLine2 = "\u276F";
@@ -43,12 +45,10 @@ std::vector<std::string> splitbydelim(const std::string& str, char delimiter) {
 
 std::string toLower(const std::string& str) {
     std::string lowerStr = str; // Make a copy of the original string
-    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(),
-                   [](unsigned char c) { return std::tolower(c); }); // Convert each character to lowercase
+    std::ranges::transform(lowerStr, lowerStr.begin(),
+                           [](unsigned char c) { return std::tolower(c); }); // Convert each character to lowercase
     return lowerStr;
 }
-
-
 
 // Function to split a command string by '|' and then by spaces
 std::vector<std::vector<std::string>> parseCommands(const std::string& input) {
@@ -78,7 +78,6 @@ int main() {
         std::cout << PromptLine1 << std::endl;
         std::cout << PromptLine2;
         std::getline(std::cin, Command);
-        std::cout << which(Command) << std::endl;
 
         std::vector CallData = parseCommands(Command);
         std::vector<std::string> args(CallData[0].begin() + 1, CallData[0].end());
@@ -90,10 +89,16 @@ int main() {
         } if (toLower(command) == "clear") {
             std::cout << "\033[2J\033[1;1H";
             continue;
+        } if (toLower(command) == "time" || toLower(command) == "date") {
+            std::cout << "It is: " << TimeUtils::todayDate("D/M/Y") << " at " << TimeUtils::secondAccuracy() << std::endl;
+            std::cout << "Using date format: DD/MM/YYYY." << std::endl;
+            continue;
         }
         if (command.empty()) {
             continue;
         }
+
+        std::cout << "[+] Which: Located binary at: `" << which(Command) << "`." << std::endl;
 
         Process proc(command, args);
 
