@@ -7,11 +7,13 @@
 #include <thread>
 #include <vector>
 #include <ranges>
+#include <map>
 
-#include "modulesource.cpp"
+#include "printutilities.cpp"
 #include "processinterface.hpp"
 #include "timeutils.cpp"
 #include "which.cpp"
+#include "commands.cpp"
 
 std::string PromptLine1 = "C++S " + std::filesystem::current_path().string();
 std::string PromptLine2 = "\u276F";
@@ -71,6 +73,32 @@ std::vector<std::vector<std::string>> parseCommands(const std::string& input) {
     return commands;
 }
 
+void executeExternalCommand(const std::string& command, const std::vector<std::string>& arguments) {
+    std::string binaryLocation = which(command);
+    if (binaryLocation.empty()) {
+        negativeOutput(("`"+command+"` is not recognised as an internal or external command."));
+        return;
+    }
+    positiveOutput("[+] Which: Located binary at: `" + binaryLocation + "`.");
+
+    Process proc(command, arguments);
+
+    // Poll the process for output while it is running
+    while (proc.isRunning()) {
+        proc.readFromStdout();
+        proc.readFromStderr();
+        std::cout << proc.flushOutput();
+        std::cerr << proc.flushErrorOutput();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // Final flush after the process exits
+    proc.readFromStdout();
+    proc.readFromStderr();
+    std::cout << proc.flushOutput();
+    std::cerr << proc.flushErrorOutput();
+}
+
 int main() {
     std::signal(SIGINT, signalHandler);
 
@@ -89,33 +117,16 @@ int main() {
         } if (toLower(command) == "clear") {
             std::cout << "\033[2J\033[1;1H";
             continue;
-        } if (toLower(command) == "time" || toLower(command) == "date") {
-            std::cout << "It is: " << TimeUtils::todayDate("D/M/Y") << " at " << TimeUtils::secondAccuracy() << std::endl;
-            std::cout << "Using date format: DD/MM/YYYY." << std::endl;
-            continue;
-        }
-        if (command.empty()) {
-            continue;
         }
 
-        std::cout << "[+] Which: Located binary at: `" << which(Command) << "`." << std::endl;
+        auto matchedInternalCommand = AllCommands.find(command);
 
-        Process proc(command, args);
-
-        // Poll the process for output while it is running
-        while (proc.isRunning()) {
-            proc.readFromStdout();
-            proc.readFromStderr();
-            std::cout << proc.flushOutput();
-            std::cerr << proc.flushErrorOutput();
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        if (matchedInternalCommand != AllCommands.end()) {
+            matchedInternalCommand->second(args);
+        } else { // Is either non-existent or not built in.
+            if (command.empty()) {continue;}
+            executeExternalCommand(command, args);
         }
-
-        // Final flush after the process exits
-        proc.readFromStdout();
-        proc.readFromStderr();
-        std::cout << proc.flushOutput();
-        std::cerr << proc.flushErrorOutput();
     }
 
     return 0;
